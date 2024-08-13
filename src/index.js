@@ -43,7 +43,15 @@ function yaml2json(yamlString) {
 }
 
 function json2yaml(jsonObject) {
-	const yamlString = jsYaml.dump(jsonObject)
+	const yamlString = jsYaml.dump(jsonObject, {
+		lineWidth: -1,
+        forceQuotes: true,
+        quotingType: '"',
+        noRefs: true,
+        noCompatMode: true,
+        stripComments: false,
+        flowLevel: -1
+	})
     return yamlString
 }
 

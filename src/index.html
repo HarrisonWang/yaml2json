@@ -1,34 +1,84 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="shortcut icon" href="https://xiaowangye.org/assets/img/favicons/favicon.ico">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
     <title>YAML-JSON Converter</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/yaml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
         body {
             font-family: 'Inter', sans-serif;
         }
+
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .custom-alert {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+        .custom-alert.show {
+            opacity: 1;
+        }
     </style>
 </head>
+
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
-    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-3xl">
+    <div id="customAlert" class="custom-alert" role="alert">
+        <span id="alertMessage"></span>
+    </div>
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-6xl">
         <h1 class="text-2xl font-semibold mb-4">YAML-JSON Converter</h1>
         <div class="mb-4 relative">
-            <textarea id="inputText" rows="10" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" placeholder="请输入json数据..."></textarea>
+            <textarea id="inputText" rows="12"
+                class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                placeholder="请输入json数据..."></textarea>
             <button id="copyInput" class="absolute top-2 right-2 bg-gray-200 hover:bg-gray-300 rounded p-1">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
             </button>
         </div>
         <div class="flex space-x-4 mb-4">
-            <button id="json2yaml" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded transition duration-200">JSON to YAML</button>
-            <button id="yaml2json" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded transition duration-200">YAML to JSON</button>
+            <button id="json2yaml"
+                class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded transition duration-200">JSON
+                to YAML</button>
+            <button id="yaml2json"
+                class="flex-1 bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded transition duration-200">YAML
+                to JSON</button>
         </div>
-        <div id="output" class="w-full p-3 border border-gray-300 rounded-lg h-40 overflow-auto bg-gray-50"></div>
+        <div class="relative">
+            <div id="output" class="w-full p-3 border border-gray-300 rounded-lg h-96 overflow-auto bg-gray-50"></div>
+            <button id="copyOutput" class="absolute top-2 right-2 bg-gray-200 hover:bg-gray-300 rounded p-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+            </button>
+        </div>
     </div>
 
     <script>
@@ -37,18 +87,23 @@
         const json2yamlBtn = document.getElementById('json2yaml');
         const yaml2jsonBtn = document.getElementById('yaml2json');
         const copyInputBtn = document.getElementById('copyInput');
-
-        const workerUrl = 'http://localhost:60093'; // 替换为您的Worker URL
+        const copyOutputBtn = document.getElementById('copyOutput');
 
         async function convertData(endpoint) {
             const input = inputText.value;
             try {
-                const response = await fetch(`${workerUrl}${endpoint}`, {
+                let body = null;
+                if (endpoint === '/json2yaml') {
+                    body = input
+                } else if (endpoint === '/yaml2json') {
+                    body = JSON.stringify({ yamlString: input });
+                }
+                const response = await fetch(`${endpoint}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ yamlString: input }),
+                    body: body,
                 });
 
                 if (!response.ok) {
@@ -57,6 +112,8 @@
 
                 const result = await response.text();
                 output.textContent = result;
+                const data = endpoint === '/json2yaml' ? jsyaml.load(result) : JSON.parse(result);
+                formatAndHighlight(data, endpoint === '/json2yaml' ? 'yaml' : 'json');
             } catch (error) {
                 output.textContent = `Error: ${error.message}`;
             }
@@ -67,9 +124,49 @@
 
         copyInputBtn.addEventListener('click', () => {
             navigator.clipboard.writeText(inputText.value).then(() => {
-                alert('Copied to clipboard!');
+                showCustomAlert('输入内容已复制到剪贴板！');
             });
         });
+
+        copyOutputBtn.addEventListener('click', () => {
+            const outputText = output.textContent;
+            navigator.clipboard.writeText(outputText).then(() => {
+                showCustomAlert('输出内容已复制到剪贴板！');
+            });
+        });
+
+        function formatAndHighlight(data, type) {
+            let formatted;
+            let language;
+
+            if (type === 'yaml') {
+                formatted = jsyaml.dump(data, {
+                    indent: 2,
+                    forceQuotes: true,
+                    quotingType: '"',
+                    noRefs: true,
+                    noCompatMode: true,
+                    stripComments: false,
+                    flowLevel: -1
+                });
+                language = 'yaml';
+            } else {
+                formatted = JSON.stringify(data, null, 2);
+                language = 'json';
+            }
+
+            const highlightedCode = hljs.highlight(formatted, { language }).value;
+            output.innerHTML = `<pre><code class="hljs ${language}">${highlightedCode}</code></pre>`;
+        }
+
+        function showCustomAlert(message) {
+            alertMessage.textContent = message;
+            customAlert.classList.add('show');
+            setTimeout(() => {
+                customAlert.classList.remove('show');
+            }, 2000);
+        }
     </script>
 </body>
+
 </html>
